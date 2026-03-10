@@ -103,18 +103,21 @@ class LogController {
   }
 
   void searchLog(String query) {
+    final visibleLogs = logsNotifier.value.where((log) {
+      return log.authorId == username || log.isPublic == true;
+    }).toList();
+
     if (query.isEmpty) {
-      filteredLogs.value = logsNotifier.value;
+      filteredLogs.value = visibleLogs;
     } else {
-      filteredLogs.value = logsNotifier.value
+      filteredLogs.value = visibleLogs
           .where((log) => log.title.toLowerCase().contains(query.toLowerCase()))
           .toList();
     }
   }
 
-  // 1. Menambah data ke Cloud
   // 1. Menambah data (Instan Lokal + Background Cloud)
-  Future<void> addLog(String title, String desc, String category) async {
+  Future<void> addLog(String title, String desc, String category, bool isPublic,) async {
     if (!AccessControlService.canPerform(
       userRole,
       AccessControlService.actionCreate,
@@ -134,6 +137,7 @@ class LogController {
       date: DateTime.now().toIso8601String(),
       authorId: username,
       teamId: teamId,
+      isPublic: isPublic,
     );
 
     // ACTION 1: Simpan ke Hive (Instan)
@@ -170,13 +174,13 @@ class LogController {
     }
   }
 
-  // 2. Memperbarui data di Cloud (HOTS: Sinkronisasi Terjamin)
   // 2. Memperbarui data (Instan Lokal + Background Cloud)
   Future<void> updateLog(
     int index,
     String title,
     String desc,
     String category,
+    bool isPublic,
   ) async {
     final currentLogs = List<LogModel>.from(logsNotifier.value);
     final oldLog = currentLogs[index];
@@ -201,6 +205,7 @@ class LogController {
       date: DateTime.now().toIso8601String(),
       authorId: oldLog.authorId,
       teamId: oldLog.teamId,
+      isPublic: isPublic,
     );
 
     // ACTION 1: Update ke Hive (Instan)
@@ -287,7 +292,7 @@ class LogController {
     // 1. Ambil data dari Hive (Offline-First)
     final localData = _myBox.values.toList();
     logsNotifier.value = localData;
-    filteredLogs.value = localData;
+    searchLog('');
 
     try {
       // 2. Fetch data team ini dari cloud
@@ -298,7 +303,7 @@ class LogController {
       await _myBox.addAll(cloudData);
 
       logsNotifier.value = cloudData;
-      filteredLogs.value = cloudData;
+      searchLog('');
 
       await LogHelper.writeLog(
         "SYNC: Data berhasil diperbarui dari Atlas untuk team $teamId",

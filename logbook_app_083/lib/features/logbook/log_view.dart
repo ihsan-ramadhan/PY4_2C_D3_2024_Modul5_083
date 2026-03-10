@@ -597,8 +597,7 @@ class _LogViewState extends State<LogView> {
                                     Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        if (AccessControlService.canPerform(_controller.userRole, AccessControlService.actionUpdate, isOwner: 
-                                        log.authorId == _controller.username))
+                                        if (log.authorId ==_controller.username)
                                           IconButton(
                                             icon: Icon(
                                               Icons.edit_outlined,
@@ -612,8 +611,7 @@ class _LogViewState extends State<LogView> {
                                             tooltip: "Edit",
                                           visualDensity: VisualDensity.compact,
                                           ),
-                                        if (AccessControlService.canPerform(_controller.userRole, AccessControlService.actionDelete, isOwner: 
-                                        log.authorId == _controller.username))
+                                        if (log.authorId ==_controller.username)
                                           IconButton(
                                             icon: Icon(
                                               Icons.delete_outline_rounded,

@@ -27,6 +27,7 @@ class _LogEditorPageState extends State<LogEditorPage> {
 
   String _selectedCategory = "Pribadi";
   final List<String> _categories = ["Pribadi", "Pekerjaan", "Tugas"];
+  bool _isPublic = false;
 
   @override
   void initState() {
@@ -37,6 +38,7 @@ class _LogEditorPageState extends State<LogEditorPage> {
     );
     if (widget.log != null) {
       _selectedCategory = widget.log!.category;
+      _isPublic = widget.log!.isPublic;
     }
     // TAMBAHKAN INI: Listener agar Pratinjau terupdate otomatis
     _descController.addListener(() {
@@ -51,6 +53,7 @@ class _LogEditorPageState extends State<LogEditorPage> {
         _titleController.text,
         _descController.text,
         _selectedCategory,
+        _isPublic,
       );
     } else {
       // Update
@@ -59,6 +62,7 @@ class _LogEditorPageState extends State<LogEditorPage> {
         _titleController.text,
         _descController.text,
         _selectedCategory,
+        _isPublic,
       );
     }
 
@@ -156,6 +160,51 @@ class _LogEditorPageState extends State<LogEditorPage> {
                         .toList(),
                     onChanged: (val) =>
                         setState(() => _selectedCategory = val!),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F4FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              _isPublic
+                                  ? Icons.public_rounded
+                                  : Icons.lock_outline_rounded,
+                              size: 20,
+                              color: _isPublic
+                                  ? Colors.green[600]
+                                  : Colors.blueGrey,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              _isPublic
+                                  ? "Publik (Tim bisa lihat)"
+                                  : "Privat (Hanya Anda)",
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ],
+                        ),
+                        Switch(
+                          value: _isPublic,
+                          activeColor: Colors.green[600],
+                          onChanged: (val) {
+                            setState(() {
+                              _isPublic = val;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Expanded(

@@ -26,6 +26,9 @@ class LogModel {
   @HiveField(6)
   final String category; // BARU
 
+  @HiveField(7, defaultValue: false)
+  final bool isPublic;
+
   bool isSynced;
 
   LogModel({
@@ -36,6 +39,7 @@ class LogModel {
     required this.authorId,
     required this.teamId,
     this.category = 'Umum',
+    this.isPublic = false,
     this.isSynced = true,
   });
 
@@ -47,6 +51,7 @@ class LogModel {
     'category': category,
     'authorId': authorId,
     'teamId': teamId,
+    'isPublic': isPublic,
   };
 
   factory LogModel.fromMap(Map<String, dynamic> map) {
@@ -58,6 +63,7 @@ class LogModel {
       date: map['date'] ?? '',
       authorId: map['authorId'] ?? 'unknown_user', // Cegah error null
       teamId: map['teamId'] ?? 'no_team',
+      isPublic: map['isPublic'] ?? false,
     );
     log.isSynced = true;
     return log;
