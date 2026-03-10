@@ -111,7 +111,10 @@ class LogController {
       filteredLogs.value = visibleLogs;
     } else {
       filteredLogs.value = visibleLogs
-          .where((log) => log.title.toLowerCase().contains(query.toLowerCase()))
+          .where((log) =>
+                log.title.toLowerCase().contains(query.toLowerCase()) ||
+                log.description.toLowerCase().contains(query.toLowerCase()),
+          )
           .toList();
     }
   }
