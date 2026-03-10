@@ -22,8 +22,7 @@ class AccessControlService {
     bool hasBasicPermission = permissions.contains(action);
 
     // Logic khusus kepemilikan data (Owner-based RBAC)
-    if (role == 'Anggota' &&
-        (action == actionUpdate || action == actionDelete)) {
+    if (action == actionUpdate || action == actionDelete) {
       return isOwner;
     }
 

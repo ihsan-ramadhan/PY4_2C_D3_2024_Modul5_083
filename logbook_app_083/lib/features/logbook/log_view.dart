@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logbook_app_083/helpers/log_helper.dart';
 import 'package:logbook_app_083/services/mongo_service.dart';
-import 'package:logbook_app_083/services/access_control_service.dart';
 import 'log_controller.dart';
 import 'log_editor_page.dart';
 import 'models/log_model.dart';
@@ -434,12 +433,7 @@ class _LogViewState extends State<LogView> {
                         ),
                         child: Dismissible(
                           key: Key('${log.title}_$originalIndex'),
-                          direction:
-                              AccessControlService.canPerform(
-                                _controller.userRole,
-                                AccessControlService.actionDelete,
-                                isOwner: log.authorId == _controller.username,
-                              )
+                          direction: (log.authorId == _controller.username)
                               ? DismissDirection.endToStart
                               : DismissDirection.none,
                           secondaryBackground: Container(
@@ -467,13 +461,7 @@ class _LogViewState extends State<LogView> {
                             color: Colors.white,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(14),
-                              onTap:
-                                  AccessControlService.canPerform(
-                                    _controller.userRole,
-                                    AccessControlService.actionUpdate,
-                                    isOwner:
-                                        log.authorId == _controller.username,
-                                  )
+                              onTap: (log.authorId == _controller.username)
                                   ? () => _goToEditor(
                                       index: originalIndex,
                                       log: log,
