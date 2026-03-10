@@ -25,8 +25,8 @@ class _LogEditorPageState extends State<LogEditorPage> {
   late TextEditingController _titleController;
   late TextEditingController _descController;
 
-  String _selectedCategory = "Pribadi";
-  final List<String> _categories = ["Pribadi", "Pekerjaan", "Tugas"];
+  String _selectedCategory = "Mechanical";
+  final List<String> _categories = ["Mechanical", "Electronic", "Software"];
   bool _isPublic = false;
 
   @override
@@ -37,7 +37,11 @@ class _LogEditorPageState extends State<LogEditorPage> {
       text: widget.log?.description ?? '',
     );
     if (widget.log != null) {
-      _selectedCategory = widget.log!.category;
+      if (_categories.contains(widget.log!.category)) {
+        _selectedCategory = widget.log!.category;
+      } else {
+        _selectedCategory = "Mechanical";
+      }
       _isPublic = widget.log!.isPublic;
     }
     // TAMBAHKAN INI: Listener agar Pratinjau terupdate otomatis

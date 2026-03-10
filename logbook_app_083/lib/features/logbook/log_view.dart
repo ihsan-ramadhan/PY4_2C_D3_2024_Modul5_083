@@ -27,20 +27,27 @@ class _LogViewState extends State<LogView> {
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case "Pekerjaan": return Colors.orange;
-      case "Tugas": return Colors.red;
-      default: return Colors.blue;
+      case "Mechanical":
+        return Colors.green;
+      case "Electronic":
+        return Colors.blue;
+      case "Software":
+        return Colors.orange;
+      default:
+        return Colors.blueGrey;
     }
   }
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
-      case "Pekerjaan":
-        return Icons.work_outline_rounded;
-      case "Tugas":
-        return Icons.assignment_outlined;
+      case "Mechanical":
+        return Icons.settings_rounded;
+      case "Electronic":
+        return Icons.memory_rounded;
+      case "Software":
+        return Icons.code_rounded;
       default:
-        return Icons.person_outline_rounded;
+        return Icons.note_rounded;
     }
   }
 

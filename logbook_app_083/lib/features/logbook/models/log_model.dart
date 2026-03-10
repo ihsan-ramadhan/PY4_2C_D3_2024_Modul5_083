@@ -23,7 +23,7 @@ class LogModel {
   @HiveField(5)
   final String teamId; // BARU
 
-  @HiveField(6)
+  @HiveField(6, defaultValue: 'Mechanical')
   final String category; // BARU
 
   @HiveField(7, defaultValue: false)
@@ -38,7 +38,7 @@ class LogModel {
     required this.description,
     required this.authorId,
     required this.teamId,
-    this.category = 'Umum',
+    this.category = 'Mechanical',
     this.isPublic = false,
     this.isSynced = true,
   });
@@ -59,7 +59,7 @@ class LogModel {
       id: (map['_id'] as ObjectId?)?.oid,
       title: map['title'] ?? '',
       description: map['description'] ?? '',
-      category: map['category'] ?? 'Pribadi',
+      category: map['category'] ?? 'Mechanical',
       date: map['date'] ?? '',
       authorId: map['authorId'] ?? 'unknown_user', // Cegah error null
       teamId: map['teamId'] ?? 'no_team',

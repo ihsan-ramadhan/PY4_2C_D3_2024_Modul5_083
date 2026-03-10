@@ -23,7 +23,7 @@ class LogModelAdapter extends TypeAdapter<LogModel> {
       description: fields[2] as String,
       authorId: fields[4] as String,
       teamId: fields[5] as String,
-      category: fields[6] as String,
+      category: fields[6] == null ? 'Mechanical' : fields[6] as String,
       isPublic: fields[7] == null ? false : fields[7] as bool,
     );
   }
