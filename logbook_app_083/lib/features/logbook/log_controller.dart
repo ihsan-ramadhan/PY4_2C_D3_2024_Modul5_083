@@ -144,12 +144,24 @@ class LogController {
     // ACTION 2: Kirim ke MongoDB Atlas (Background)
     try {
       await MongoService().insertLog(newLog);
+      newLog.isSynced = true;
+      await _myBox.putAt(_myBox.length - 1, newLog);
+
+      logsNotifier.value = List.from(logsNotifier.value);
+      filteredLogs.value = logsNotifier.value;
+
       await LogHelper.writeLog(
         "SUCCESS: Data '${newLog.title}' tersinkron ke Cloud",
         source: "log_controller.dart",
         level: 2,
       );
     } catch (e) {
+      newLog.isSynced = false;
+      await _myBox.putAt(_myBox.length - 1, newLog);
+
+      logsNotifier.value = List.from(logsNotifier.value);
+      filteredLogs.value = logsNotifier.value;
+
       await LogHelper.writeLog(
         "WARNING: Data '${newLog.title}' tersimpan lokal, akan sinkron saat online - $e",
         source: "log_controller.dart",
@@ -200,12 +212,24 @@ class LogController {
     // ACTION 2: Update ke MongoDB Atlas (Background)
     try {
       await MongoService().updateLog(updatedLog);
+      updatedLog.isSynced = true;
+      await _myBox.putAt(index, updatedLog);
+
+      logsNotifier.value = List.from(logsNotifier.value);
+      filteredLogs.value = logsNotifier.value;
+
       await LogHelper.writeLog(
         "SUCCESS: Update '${oldLog.title}' tersinkron ke Cloud",
         source: "log_controller.dart",
         level: 2,
       );
     } catch (e) {
+      updatedLog.isSynced = false;
+      await _myBox.putAt(index, updatedLog);
+
+      logsNotifier.value = List.from(logsNotifier.value);
+      filteredLogs.value = logsNotifier.value;
+
       await LogHelper.writeLog(
         "WARNING: Update '${oldLog.title}' tersimpan lokal, akan sinkron saat online - $e",
         source: "log_controller.dart",
@@ -214,7 +238,6 @@ class LogController {
     }
   }
 
-  // 3. Menghapus data dari Cloud (HOTS: Sinkronisasi Terjamin)
   // 3. Menghapus data (Instan Lokal + Background Cloud)
   Future<void> removeLog(int index) async {
     final currentLogs = List<LogModel>.from(logsNotifier.value);

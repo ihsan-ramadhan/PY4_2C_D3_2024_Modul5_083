@@ -26,6 +26,8 @@ class LogModel {
   @HiveField(6)
   final String category; // BARU
 
+  bool isSynced;
+
   LogModel({
     this.id,
     required this.title,
@@ -34,6 +36,7 @@ class LogModel {
     required this.authorId,
     required this.teamId,
     this.category = 'Umum',
+    this.isSynced = true,
   });
 
   Map<String, dynamic> toMap() => {
@@ -47,7 +50,7 @@ class LogModel {
   };
 
   factory LogModel.fromMap(Map<String, dynamic> map) {
-    return LogModel(
+    final log = LogModel(
       id: (map['_id'] as ObjectId?)?.oid,
       title: map['title'] ?? '',
       description: map['description'] ?? '',
@@ -56,5 +59,7 @@ class LogModel {
       authorId: map['authorId'] ?? 'unknown_user', // Cegah error null
       teamId: map['teamId'] ?? 'no_team',
     );
+    log.isSynced = true;
+    return log;
   }
 }

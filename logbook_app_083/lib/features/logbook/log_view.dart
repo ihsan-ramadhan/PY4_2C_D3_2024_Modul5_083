@@ -578,6 +578,16 @@ class _LogViewState extends State<LogView> {
                                                   color: Colors.blueGrey[300],
                                                 ),
                                               ),
+                                              const SizedBox(width: 8),
+                                              Icon(
+                                                log.isSynced
+                                                    ? Icons.cloud_done_rounded
+                                                    : Icons.cloud_off_rounded,
+                                                size: 14,
+                                                color: log.isSynced
+                                                    ? Colors.green[400]
+                                                    : Colors.orange[600],
+                                              ),
                                             ],
                                           ),
                                         ],
