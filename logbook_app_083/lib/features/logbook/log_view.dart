@@ -434,7 +434,14 @@ class _LogViewState extends State<LogView> {
                         ),
                         child: Dismissible(
                           key: Key('${log.title}_$originalIndex'),
-                          direction: DismissDirection.endToStart,
+                          direction:
+                              AccessControlService.canPerform(
+                                _controller.userRole,
+                                AccessControlService.actionDelete,
+                                isOwner: log.authorId == _controller.username,
+                              )
+                              ? DismissDirection.endToStart
+                              : DismissDirection.none,
                           secondaryBackground: Container(
                             decoration: BoxDecoration(
                               color: Colors.red[400],
@@ -460,8 +467,18 @@ class _LogViewState extends State<LogView> {
                             color: Colors.white,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(14),
-                              onTap: () =>
-                                  _goToEditor(index: originalIndex, log: log),
+                              onTap:
+                                  AccessControlService.canPerform(
+                                    _controller.userRole,
+                                    AccessControlService.actionUpdate,
+                                    isOwner:
+                                        log.authorId == _controller.username,
+                                  )
+                                  ? () => _goToEditor(
+                                      index: originalIndex,
+                                      log: log,
+                                    )
+                                  : null,
                               child: Padding(
                                 padding: const EdgeInsets.only(
                                   left: 14,
