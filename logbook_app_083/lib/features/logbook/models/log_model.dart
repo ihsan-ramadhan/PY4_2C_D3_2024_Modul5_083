@@ -1,41 +1,60 @@
+import 'package:hive/hive.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 
+part 'log_model.g.dart';
+
+@HiveType(typeId: 0)
 class LogModel {
-  final ObjectId? id; // Penanda unik global dari MongoDB
+  @HiveField(0)
+  final String? id;
+
+  @HiveField(1)
   final String title;
-  final DateTime date;
+
+  @HiveField(2)
   final String description;
-  final String category;
+
+  @HiveField(3)
+  final String date;
+
+  @HiveField(4)
+  final String authorId;
+
+  @HiveField(5)
+  final String teamId; // BARU
+
+  @HiveField(6)
+  final String category; // BARU
 
   LogModel({
     this.id,
     required this.title,
     required this.date,
     required this.description,
-    required this.category,
+    required this.authorId,
+    required this.teamId,
+    this.category = 'Umum',
   });
 
-  // [REVERT] Membongkar "Kardus" (BSON/Map) kembali menjadi objek Flutter
+  Map<String, dynamic> toMap() => {
+    '_id': id != null ? ObjectId.fromHexString(id!) : ObjectId(),
+    'title': title,
+    'description': description,
+    'date': date,
+    'category': category,
+    'authorId': authorId,
+    'teamId': teamId,
+  };
+
   factory LogModel.fromMap(Map<String, dynamic> map) {
     return LogModel(
-      id: map['_id'] is ObjectId
-          ? map['_id'] as ObjectId
-          : (map['_id'] is String ? ObjectId.parse(map['_id']) : null),
+      id: (map['_id'] as ObjectId?)?.oid,
       title: map['title'] ?? '',
-      date: map['date'] != null ? DateTime.parse(map['date']) : DateTime.now(),
       description: map['description'] ?? '',
       category: map['category'] ?? 'Pribadi',
+      date: map['date'] ?? '',
+      authorId: map['authorId'] ?? 'unknown_user', // Cegah error null
+      teamId: map['teamId'] ?? 'no_team',
     );
-  }
-
-  // [CONVERT] Memasukkan data ke "Kardus" (BSON/Map) untuk dikirim ke Cloud
-  Map<String, dynamic> toMap() {
-    return {
-      '_id': id ?? ObjectId(), // Buat ID otomatis jika belum ada
-      'title': title,
-      'description': description,
-      'date': date.toIso8601String(), // Simpan tanggal dalam format standar
-      'category': category,
-    };
   }
 }

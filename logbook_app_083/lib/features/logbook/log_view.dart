@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:logbook_app_083/helpers/log_helper.dart';
 import 'package:logbook_app_083/services/mongo_service.dart';
+import 'package:logbook_app_083/services/access_control_service.dart';
 import 'log_controller.dart';
 import 'models/log_model.dart';
 import '../onboarding/onboarding_view.dart';
@@ -343,7 +344,10 @@ class _LogViewState extends State<LogView> {
   @override
   void initState() {
     super.initState();
-    _controller = LogController();
+    _controller = LogController(
+      username: widget.username,
+      userRole: widget.username == 'admin' ? 'Ketua' : 'Anggota',
+    );
 
     // Memberikan kesempatan UI merender widget awal sebelum proses berat dimulai
     Future.microtask(() => _initDatabase());
@@ -794,28 +798,32 @@ class _LogViewState extends State<LogView> {
                                     Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.edit_outlined,
-                                            color: Colors.blue[600],
-                                            size: 18,
-                                          ),
-                                          onPressed: () => _showEditLogDialog(
-                                            originalIndex,
-                                            log,
-                                          ),
-                                          tooltip: "Edit",
+                                        if (AccessControlService.canPerform(_controller.userRole, AccessControlService.actionUpdate, isOwner: 
+                                        log.authorId == _controller.username))
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.edit_outlined,
+                                              color: Colors.blue[600],
+                                              size: 18,
+                                            ),
+                                            onPressed: () => _showEditLogDialog(
+                                              originalIndex,
+                                              log,
+                                            ),
+                                            tooltip: "Edit",
                                           visualDensity: VisualDensity.compact,
-                                        ),
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.delete_outline_rounded,
-                                            color: Colors.red[400],
-                                            size: 18,
                                           ),
-                                          onPressed: () => _controller
-                                              .removeLog(originalIndex),
-                                          tooltip: "Hapus",
+                                        if (AccessControlService.canPerform(_controller.userRole, AccessControlService.actionDelete, isOwner: 
+                                        log.authorId == _controller.username))
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.delete_outline_rounded,
+                                              color: Colors.red[400],
+                                              size: 18,
+                                            ),
+                                            onPressed: () => _controller
+                                                .removeLog(originalIndex),
+                                            tooltip: "Hapus",
                                           visualDensity: VisualDensity.compact,
                                         ),
                                       ],

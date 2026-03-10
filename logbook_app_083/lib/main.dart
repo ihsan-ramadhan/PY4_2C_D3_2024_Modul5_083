@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:hive_flutter/hive_flutter.dart';  // Gunakan hive_flutter, bukan hive biasa
 // Sesuaikan path import dengan struktur folder baru
 import 'package:logbook_app_083/features/onboarding/onboarding_view.dart';
 import 'package:logbook_app_083/features/auth/login_view.dart';
-import 'package:logbook_app_083/services/mongo_service.dart';
+import 'package:logbook_app_083/features/logbook/models/log_model.dart';
 
 void main() async {
   // Wajib untuk operasi asinkron sebelum runApp
   WidgetsFlutterBinding.ensureInitialized();
   // Load ENV
   await dotenv.load(fileName: ".env");
-  await MongoService().connect();
+  
+  // INISIALISASI HIVE
+  await Hive.initFlutter();
+  Hive.registerAdapter(LogModelAdapter()); // WAJIB: Sesuai nama di .g.dart
+  await Hive.openBox<LogModel>(
+    'offline_logs',
+  ); // Buka box sebelum Controller dipakai
   runApp(const MyApp());
 }
 

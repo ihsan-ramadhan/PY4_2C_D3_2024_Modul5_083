@@ -114,7 +114,7 @@ class MongoService {
       if (log.id == null)
         throw Exception("ID Log tidak ditemukan untuk update");
 
-      await collection.replaceOne(where.id(log.id!), log.toMap());
+      await collection.replaceOne(where.id(ObjectId.fromHexString(log.id!)), log.toMap(),);
 
       await LogHelper.writeLog(
         "DATABASE: Update '${log.title}' Berhasil",

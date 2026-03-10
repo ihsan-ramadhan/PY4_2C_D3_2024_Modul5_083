@@ -4,6 +4,7 @@ import 'package:mongo_dart/mongo_dart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import './models/log_model.dart';
 import 'package:logbook_app_083/services/mongo_service.dart';
+import 'package:logbook_app_083/services/access_control_service.dart';
 import 'package:logbook_app_083/helpers/log_helper.dart';
 
 class LogController {
@@ -18,8 +19,16 @@ class LogController {
   List<LogModel> get logs => logsNotifier.value;
 
   // --- BARU: KONSTRUKTOR ---
+  final String username;
+  final String userRole;
+  final String teamId;
+
   // Saat Controller dibuat, ia otomatis mencoba mengambil data lama
-  LogController() {
+  LogController({
+    required this.username,
+    required this.userRole,
+    this.teamId = 'Team_01',
+  }) {
     loadFromDisk();
   }
 
@@ -35,12 +44,19 @@ class LogController {
 
   // 1. Menambah data ke Cloud
   Future<void> addLog(String title, String desc, String category) async {
+    if (!AccessControlService.canPerform(userRole, AccessControlService.actionCreate,)) {
+      await LogHelper.writeLog("SECURITY BREACH: Unauthorized create attempt", level: 1);
+      return;
+    }
+
     final newLog = LogModel(
-      id: ObjectId(), // Buat ID unik sebelum dikirim
+      id: ObjectId().toString(), // Buat ID unik sebelum dikirim
       title: title,
       description: desc,
       category: category,
-      date: DateTime.now(),
+      date: DateTime.now().toIso8601String(),
+      authorId: username,
+      teamId: teamId,
     );
 
     try {
@@ -75,12 +91,19 @@ class LogController {
     final currentLogs = List<LogModel>.from(logsNotifier.value);
     final oldLog = currentLogs[index];
 
+    if (!AccessControlService.canPerform(userRole, AccessControlService.actionUpdate, isOwner: oldLog.authorId == username,)) {
+      await LogHelper.writeLog("SECURITY BREACH: Unauthorized update attempt", level: 1);
+      return; // Hentikan proses jika tidak punya izin
+    }
+
     final updatedLog = LogModel(
       id: oldLog.id, // ID harus tetap sama agar MongoDB mengenali dokumen ini
       title: title,
       description: desc,
       category: category,
-      date: DateTime.now(),
+      date: DateTime.now().toIso8601String(),
+      authorId: oldLog.authorId,
+      teamId: oldLog.teamId,
     );
 
     try {
@@ -112,6 +135,11 @@ class LogController {
     final currentLogs = List<LogModel>.from(logsNotifier.value);
     final targetLog = currentLogs[index];
 
+    if (!AccessControlService.canPerform(userRole, AccessControlService.actionDelete, isOwner: targetLog.authorId == username,)) {
+      await LogHelper.writeLog("SECURITY BREACH: Unauthorized delete attempt", level: 1);
+      return; // Hentikan proses jika tidak punya izin
+    }
+
     try {
       if (targetLog.id == null) {
         throw Exception(
@@ -120,7 +148,7 @@ class LogController {
       }
 
       // 1. Hapus data di MongoDB Atlas (Tunggu konfirmasi Cloud)
-      await MongoService().deleteLog(targetLog.id!);
+      await MongoService().deleteLog(ObjectId.fromHexString(targetLog.id!));
 
       // 2. Jika sukses, baru hapus dari state lokal
       currentLogs.removeAt(index);
