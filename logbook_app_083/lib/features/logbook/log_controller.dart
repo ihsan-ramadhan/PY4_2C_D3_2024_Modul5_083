@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:mongo_dart/mongo_dart.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:mongo_dart/mongo_dart.dart' hide Box;
+import 'package:hive/hive.dart';
 import './models/log_model.dart';
 import 'package:logbook_app_083/services/mongo_service.dart';
 import 'package:logbook_app_083/services/access_control_service.dart';
@@ -12,8 +12,11 @@ class LogController {
 
   ValueNotifier<List<LogModel>> filteredLogs = ValueNotifier([]);
 
-  // Kunci unik untuk penyimpanan lokal di Shared Preferences
-  static const String _storageKey = 'user_logs_data';
+  // Kunci unik untuk penyimpanan lokal di Shared Preferences & Box name for Hive
+  static const String _storageKey = 'offline_logs';
+  late final Box<LogModel> _myBox;
+
+  final Connectivity _connectivity = Connectivity();
 
   // Getter untuk mempermudah akses list data saat ini
   List<LogModel> get logs => logsNotifier.value;
@@ -29,7 +32,74 @@ class LogController {
     required this.userRole,
     this.teamId = 'Team_01',
   }) {
-    loadFromDisk();
+    _myBox = Hive.box<LogModel>(_storageKey);
+    _initConnectivityListener();
+  }
+
+  void _initConnectivityListener() {
+    _connectivity.onConnectivityChanged.listen((
+      List<ConnectivityResult> results,
+    ) async {
+      if (results.contains(ConnectivityResult.none)) return;
+
+      if (logsNotifier.value.isEmpty) return;
+
+      await LogHelper.writeLog(
+        "SYNC: Internet terhubung, memulai cek data pending...",
+        source: "log_controller.dart",
+        level: 2,
+      );
+
+      await _syncPendingData();
+    });
+  }
+
+  Future<void> _syncPendingData() async {
+    try {
+      final offlineData = _myBox.values.toList();
+
+      final cloudData = await MongoService().getLogs(teamId);
+      final cloudIds = cloudData.map((e) => e.id).toSet();
+
+      bool hasSynced = false;
+
+      for (var localLog in offlineData) {
+        if (!cloudIds.contains(localLog.id)) {
+          await LogHelper.writeLog(
+            "SYNC: Data pending ditemukan -> ${localLog.title}. Mengirim ke Cloud...",
+            source: "log_controller.dart",
+            level: 2,
+          );
+
+          try {
+            await MongoService().insertLog(localLog);
+            hasSynced = true;
+          } catch (e) {
+            await LogHelper.writeLog(
+              "SYNC ERROR: Gagal push data pending - $e",
+              source: "log_controller.dart",
+              level: 1,
+            );
+          }
+        }
+      }
+
+      if (hasSynced) {
+        await loadFromDisk();
+      } else {
+        await LogHelper.writeLog(
+          "SYNC: Tidak ada data pending yang perlu disinkronkan.",
+          source: "log_controller.dart",
+          level: 3,
+        );
+      }
+    } catch (e) {
+      await LogHelper.writeLog(
+        "SYNC ERROR: Sinkronisasi Latar Belakang Gagal - $e",
+        source: "log_controller.dart",
+        level: 1,
+      );
+    }
   }
 
   void searchLog(String query) {
@@ -43,14 +113,21 @@ class LogController {
   }
 
   // 1. Menambah data ke Cloud
+  // 1. Menambah data (Instan Lokal + Background Cloud)
   Future<void> addLog(String title, String desc, String category) async {
-    if (!AccessControlService.canPerform(userRole, AccessControlService.actionCreate,)) {
-      await LogHelper.writeLog("SECURITY BREACH: Unauthorized create attempt", level: 1);
+    if (!AccessControlService.canPerform(
+      userRole,
+      AccessControlService.actionCreate,
+    )) {
+      await LogHelper.writeLog(
+        "SECURITY BREACH: Unauthorized create attempt",
+        level: 1,
+      );
       return;
     }
 
     final newLog = LogModel(
-      id: ObjectId().toString(), // Buat ID unik sebelum dikirim
+      id: ObjectId().oid, // Menggunakan .oid (String) untuk Hive
       title: title,
       description: desc,
       category: category,
@@ -59,22 +136,22 @@ class LogController {
       teamId: teamId,
     );
 
+    // ACTION 1: Simpan ke Hive (Instan)
+    await _myBox.add(newLog);
+    logsNotifier.value = [...logsNotifier.value, newLog];
+    filteredLogs.value = logsNotifier.value;
+
+    // ACTION 2: Kirim ke MongoDB Atlas (Background)
     try {
-      // 2. Kirim ke MongoDB Atlas
       await MongoService().insertLog(newLog);
-
-      // 3. Update UI Lokal (Data sekarang sudah punya ID asli)
-      logsNotifier.value = [...logsNotifier.value, newLog];
-      filteredLogs.value = logsNotifier.value;
-
       await LogHelper.writeLog(
-        "SUCCESS: Tambah '${newLog.title}' ke Cloud",
+        "SUCCESS: Data '${newLog.title}' tersinkron ke Cloud",
         source: "log_controller.dart",
         level: 2,
       );
     } catch (e) {
       await LogHelper.writeLog(
-        "ERROR: Gagal sinkronisasi Add - $e",
+        "WARNING: Data '${newLog.title}' tersimpan lokal, akan sinkron saat online - $e",
         source: "log_controller.dart",
         level: 1,
       );
@@ -82,6 +159,7 @@ class LogController {
   }
 
   // 2. Memperbarui data di Cloud (HOTS: Sinkronisasi Terjamin)
+  // 2. Memperbarui data (Instan Lokal + Background Cloud)
   Future<void> updateLog(
     int index,
     String title,
@@ -91,13 +169,20 @@ class LogController {
     final currentLogs = List<LogModel>.from(logsNotifier.value);
     final oldLog = currentLogs[index];
 
-    if (!AccessControlService.canPerform(userRole, AccessControlService.actionUpdate, isOwner: oldLog.authorId == username,)) {
-      await LogHelper.writeLog("SECURITY BREACH: Unauthorized update attempt", level: 1);
+    if (!AccessControlService.canPerform(
+      userRole,
+      AccessControlService.actionUpdate,
+      isOwner: oldLog.authorId == username,
+    )) {
+      await LogHelper.writeLog(
+        "SECURITY BREACH: Unauthorized update attempt",
+        level: 1,
+      );
       return; // Hentikan proses jika tidak punya izin
     }
 
     final updatedLog = LogModel(
-      id: oldLog.id, // ID harus tetap sama agar MongoDB mengenali dokumen ini
+      id: oldLog.id, // ID harus tetap sama
       title: title,
       description: desc,
       category: category,
@@ -106,85 +191,103 @@ class LogController {
       teamId: oldLog.teamId,
     );
 
+    // ACTION 1: Update ke Hive (Instan)
+    await _myBox.putAt(index, updatedLog);
+    currentLogs[index] = updatedLog;
+    logsNotifier.value = currentLogs;
+    filteredLogs.value = logsNotifier.value;
+
+    // ACTION 2: Update ke MongoDB Atlas (Background)
     try {
-      // 1. Jalankan update di MongoService (Tunggu konfirmasi Cloud)
       await MongoService().updateLog(updatedLog);
-
-      // 2. Jika sukses, baru perbarui state lokal
-      currentLogs[index] = updatedLog;
-      logsNotifier.value = currentLogs;
-      filteredLogs.value = logsNotifier.value;
-
       await LogHelper.writeLog(
-        "SUCCESS: Update '${oldLog.title}' Berhasil",
+        "SUCCESS: Update '${oldLog.title}' tersinkron ke Cloud",
         source: "log_controller.dart",
         level: 2,
       );
     } catch (e) {
       await LogHelper.writeLog(
-        "ERROR: Gagal sinkronisasi Update - $e",
+        "WARNING: Update '${oldLog.title}' tersimpan lokal, akan sinkron saat online - $e",
         source: "log_controller.dart",
         level: 1,
       );
-      // Data di UI tidak berubah jika Cloud gagal
     }
   }
 
   // 3. Menghapus data dari Cloud (HOTS: Sinkronisasi Terjamin)
+  // 3. Menghapus data (Instan Lokal + Background Cloud)
   Future<void> removeLog(int index) async {
     final currentLogs = List<LogModel>.from(logsNotifier.value);
     final targetLog = currentLogs[index];
 
-    if (!AccessControlService.canPerform(userRole, AccessControlService.actionDelete, isOwner: targetLog.authorId == username,)) {
-      await LogHelper.writeLog("SECURITY BREACH: Unauthorized delete attempt", level: 1);
-      return; // Hentikan proses jika tidak punya izin
+    if (!AccessControlService.canPerform(
+      userRole,
+      AccessControlService.actionDelete,
+      isOwner: targetLog.authorId == username,
+    )) {
+      await LogHelper.writeLog(
+        "SECURITY BREACH: Unauthorized delete attempt",
+        level: 1,
+      );
+      return;
     }
 
+    // ACTION 1: Hapus dari Hive (Instan)
+    await _myBox.deleteAt(index);
+    currentLogs.removeAt(index);
+    logsNotifier.value = currentLogs;
+    filteredLogs.value = logsNotifier.value;
+
+    // ACTION 2: Hapus dari MongoDB (Background)
     try {
-      if (targetLog.id == null) {
-        throw Exception(
-          "ID Log tidak ditemukan, tidak bisa menghapus di Cloud.",
+      if (targetLog.id != null) {
+        await MongoService().deleteLog(ObjectId.fromHexString(targetLog.id!));
+        await LogHelper.writeLog(
+          "SUCCESS: Hapus '${targetLog.title}' tersinkron ke Cloud",
+          source: "log_controller.dart",
+          level: 2,
         );
       }
-
-      // 1. Hapus data di MongoDB Atlas (Tunggu konfirmasi Cloud)
-      await MongoService().deleteLog(ObjectId.fromHexString(targetLog.id!));
-
-      // 2. Jika sukses, baru hapus dari state lokal
-      currentLogs.removeAt(index);
-      logsNotifier.value = currentLogs;
-      filteredLogs.value = logsNotifier.value;
-
-      await LogHelper.writeLog(
-        "SUCCESS: Hapus '${targetLog.title}' Berhasil",
-        source: "log_controller.dart",
-        level: 2,
-      );
     } catch (e) {
       await LogHelper.writeLog(
-        "ERROR: Gagal sinkronisasi Hapus - $e",
+        "WARNING: Gagal hapus di Cloud, mungkin butuh sinkronisasi manual - $e",
         source: "log_controller.dart",
         level: 1,
       );
     }
   }
 
-  // --- BARU: FUNGSI PERSISTENCE (SINKRONISASI JSON) ---
+  // --- BARU: FUNGSI PERSISTENCE (SINKRONISASI JSON & HIVE) ---
 
-  // Fungsi untuk menyimpan seluruh List ke penyimpanan lokal
-  Future<void> saveToDisk() async {
-    final prefs = await SharedPreferences.getInstance();
-    // Mengubah List of Object -> List of Map -> String JSON
-    final String encodedData = jsonEncode(
-      logsNotifier.value.map((log) => log.toMap()).toList(),
-    );
-    await prefs.setString(_storageKey, encodedData);
-  }
-
-  // Ganti pemanggilan SharedPreferences menjadi MongoService
+  // LOAD DATA DARI HIVE KEMUDIAN SINKRONISASI KE CLOUD
   Future<void> loadFromDisk() async {
-    final cloudData = await MongoService().getLogs();
-    logsNotifier.value = cloudData;
-    filteredLogs.value = cloudData;
+    // 1. Ambil data dari Hive (Offline-First)
+    final localData = _myBox.values.toList();
+    logsNotifier.value = localData;
+    filteredLogs.value = localData;
+
+    try {
+      // 2. Fetch data team ini dari cloud
+      final cloudData = await MongoService().getLogs(teamId);
+
+      // SINKRONISASI: Replace Hive content with fresher Cloud content
+      await _myBox.clear();
+      await _myBox.addAll(cloudData);
+
+      logsNotifier.value = cloudData;
+      filteredLogs.value = cloudData;
+
+      await LogHelper.writeLog(
+        "SYNC: Data berhasil diperbarui dari Atlas untuk team $teamId",
+        source: "log_controller.dart",
+        level: 2,
+      );
+    } catch (e) {
+      await LogHelper.writeLog(
+        "OFFLINE: Gagal menjangkau Cloud, menggunakan data cache lokal.",
+        source: "log_controller.dart",
+        level: 2,
+      );
+    }
   }
 }

@@ -4,6 +4,7 @@ import 'package:logbook_app_083/helpers/log_helper.dart';
 import 'package:logbook_app_083/services/mongo_service.dart';
 import 'package:logbook_app_083/services/access_control_service.dart';
 import 'log_controller.dart';
+import 'log_editor_page.dart';
 import 'models/log_model.dart';
 import '../onboarding/onboarding_view.dart';
 
@@ -22,11 +23,7 @@ class _LogViewState extends State<LogView> {
   bool _isOffline = false; 
 
   // 1. Tambahkan Controller untuk menangkap input di dalam State
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _contentController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
-  String _selectedCategory = "Pribadi";
-  final List<String> _categories = ["Pribadi", "Pekerjaan", "Tugas"];
 
   Color _getCategoryColor(String category) {
     switch (category) {
@@ -47,262 +44,16 @@ class _LogViewState extends State<LogView> {
     }
   }
 
-  InputDecoration _fieldDecoration(String hint, {IconData? icon}) {
-    return InputDecoration(
-      hintText: hint,
-      filled: true,
-      fillColor: const Color(0xFFF0F4FF),
-      prefixIcon: icon != null ? Icon(icon, size: 20) : null,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF1565C0), width: 1.5),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    );
-  }
-
-  void _showAddLogDialog() {
-    _selectedCategory = "Pribadi";
-    _titleController.clear();
-    _contentController.clear();
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          final catColor = _getCategoryColor(_selectedCategory);
-          final catIcon = _getCategoryIcon(_selectedCategory);
-          return Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            clipBehavior: Clip.hardEdge,
-            child: Column(
-              mainAxisSize:
-                  MainAxisSize.min, // Agar dialog tidak memenuhi layar
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  color: catColor,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(catIcon, color: Colors.white, size: 22),
-                      const SizedBox(width: 10),
-                      const Text(
-                        "Catatan Baru",
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: _titleController,
-                        decoration: _fieldDecoration(
-                          "Judul catatan",
-                          icon: Icons.title_rounded,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: _contentController,
-                        maxLines: 3,
-                        decoration: _fieldDecoration("Isi deskripsi"),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        value: _selectedCategory,
-                        decoration: _fieldDecoration(
-                          "Kategori",
-                          icon: Icons.label_outline_rounded,
-                        ),
-                        items: _categories
-                            .map(
-                              (cat) => DropdownMenuItem(
-                                value: cat,
-                                child: Text(cat),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (val) =>
-                            setDialogState(() => _selectedCategory = val!),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text("Batal"),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: catColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: () {
-                          _controller.addLog(
-                            _titleController.text,
-                            _contentController.text,
-                            _selectedCategory,
-                          );
-                          _titleController.clear();
-                          _contentController.clear();
-                          Navigator.pop(context);
-                          setState(() {});
-                        },
-                        child: const Text("Simpan"),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  void _showEditLogDialog(int index, LogModel log) {
-    _titleController.text = log.title;
-    _contentController.text = log.description;
-    _selectedCategory = log.category;
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          final catColor = _getCategoryColor(_selectedCategory);
-          final catIcon = _getCategoryIcon(_selectedCategory);
-          return Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            clipBehavior: Clip.hardEdge,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  color: catColor,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(catIcon, color: Colors.white, size: 22),
-                      const SizedBox(width: 10),
-                      const Text(
-                        "Edit Catatan",
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextField(
-                        controller: _titleController,
-                        decoration: _fieldDecoration(
-                          "Judul catatan",
-                          icon: Icons.title_rounded,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: _contentController,
-                        maxLines: 3,
-                        decoration: _fieldDecoration("Isi deskripsi"),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        value: _selectedCategory,
-                        decoration: _fieldDecoration(
-                          "Kategori",
-                          icon: Icons.label_outline_rounded,
-                        ),
-                        items: _categories
-                            .map(
-                              (cat) => DropdownMenuItem(
-                                value: cat,
-                                child: Text(cat),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (val) =>
-                            setDialogState(() => _selectedCategory = val!),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text("Batal"),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: catColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: () {
-                          _controller.updateLog(
-                            index,
-                            _titleController.text,
-                            _contentController.text,
-                            _selectedCategory,
-                          );
-                          _titleController.clear();
-                          _contentController.clear();
-                          Navigator.pop(context);
-                          setState(() {});
-                        },
-                        child: const Text("Update"),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+  void _goToEditor({LogModel? log, int? index}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LogEditorPage(
+          log: log,
+          index: index,
+          controller: _controller,
+          username: widget.username,
+        ),
       ),
     );
   }
@@ -429,8 +180,6 @@ class _LogViewState extends State<LogView> {
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -634,7 +383,7 @@ class _LogViewState extends State<LogView> {
                         ),
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: _showAddLogDialog,
+                          onPressed: () => _goToEditor(),
                           child: const Text("Buat Catatan Pertama"),
                         ),
                       ],
@@ -689,7 +438,7 @@ class _LogViewState extends State<LogView> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(14),
                               onTap: () =>
-                                  _showEditLogDialog(originalIndex, log),
+                                  _goToEditor(index: originalIndex, log: log),
                               child: Padding(
                                 padding: const EdgeInsets.only(
                                   left: 14,
@@ -806,9 +555,9 @@ class _LogViewState extends State<LogView> {
                                               color: Colors.blue[600],
                                               size: 18,
                                             ),
-                                            onPressed: () => _showEditLogDialog(
-                                              originalIndex,
-                                              log,
+                                            onPressed: () => _goToEditor(
+                                              index: originalIndex,
+                                              log: log,
                                             ),
                                             tooltip: "Edit",
                                           visualDensity: VisualDensity.compact,
@@ -825,7 +574,7 @@ class _LogViewState extends State<LogView> {
                                                 .removeLog(originalIndex),
                                             tooltip: "Hapus",
                                           visualDensity: VisualDensity.compact,
-                                        ),
+                                          ),
                                       ],
                                     ),
                                   ],
@@ -844,7 +593,7 @@ class _LogViewState extends State<LogView> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddLogDialog, // Panggil fungsi dialog yang baru dibuat
+        onPressed: () => _goToEditor(), // Panggil fungsi navigasi page
         backgroundColor: const Color(0xFF1565C0),
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
