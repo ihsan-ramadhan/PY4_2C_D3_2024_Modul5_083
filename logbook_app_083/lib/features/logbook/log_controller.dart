@@ -143,7 +143,7 @@ class LogController {
     // ACTION 1: Simpan ke Hive (Instan)
     await _myBox.add(newLog);
     logsNotifier.value = [...logsNotifier.value, newLog];
-    filteredLogs.value = logsNotifier.value;
+    searchLog('');
 
     // ACTION 2: Kirim ke MongoDB Atlas (Background)
     try {
@@ -152,7 +152,7 @@ class LogController {
       await _myBox.putAt(_myBox.length - 1, newLog);
 
       logsNotifier.value = List.from(logsNotifier.value);
-      filteredLogs.value = logsNotifier.value;
+      searchLog('');
 
       await LogHelper.writeLog(
         "SUCCESS: Data '${newLog.title}' tersinkron ke Cloud",
@@ -164,7 +164,7 @@ class LogController {
       await _myBox.putAt(_myBox.length - 1, newLog);
 
       logsNotifier.value = List.from(logsNotifier.value);
-      filteredLogs.value = logsNotifier.value;
+      searchLog('');
 
       await LogHelper.writeLog(
         "WARNING: Data '${newLog.title}' tersimpan lokal, akan sinkron saat online - $e",
@@ -212,7 +212,7 @@ class LogController {
     await _myBox.putAt(index, updatedLog);
     currentLogs[index] = updatedLog;
     logsNotifier.value = currentLogs;
-    filteredLogs.value = logsNotifier.value;
+    searchLog('');
 
     // ACTION 2: Update ke MongoDB Atlas (Background)
     try {
@@ -221,7 +221,7 @@ class LogController {
       await _myBox.putAt(index, updatedLog);
 
       logsNotifier.value = List.from(logsNotifier.value);
-      filteredLogs.value = logsNotifier.value;
+      searchLog('');
 
       await LogHelper.writeLog(
         "SUCCESS: Update '${oldLog.title}' tersinkron ke Cloud",
@@ -233,7 +233,7 @@ class LogController {
       await _myBox.putAt(index, updatedLog);
 
       logsNotifier.value = List.from(logsNotifier.value);
-      filteredLogs.value = logsNotifier.value;
+      searchLog('');
 
       await LogHelper.writeLog(
         "WARNING: Update '${oldLog.title}' tersimpan lokal, akan sinkron saat online - $e",
@@ -264,7 +264,7 @@ class LogController {
     await _myBox.deleteAt(index);
     currentLogs.removeAt(index);
     logsNotifier.value = currentLogs;
-    filteredLogs.value = logsNotifier.value;
+    searchLog('');
 
     // ACTION 2: Hapus dari MongoDB (Background)
     try {
