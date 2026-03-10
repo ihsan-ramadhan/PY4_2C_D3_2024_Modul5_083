@@ -6,6 +6,7 @@ import 'log_controller.dart';
 import 'log_editor_page.dart';
 import 'models/log_model.dart';
 import '../onboarding/onboarding_view.dart';
+import 'package:lottie/lottie.dart';
 
 class LogView extends StatefulWidget {
   final String username;
@@ -280,6 +281,20 @@ class _LogViewState extends State<LogView> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
                 ),
+                suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _searchController,
+                  builder: (context, value, child) {
+                    if (value.text.isEmpty) return const SizedBox.shrink();
+                    return IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 20),
+                      color: Colors.blueGrey,
+                      onPressed: () {
+                        _searchController.clear();
+                        _controller.searchLog('');
+                      },
+                    );
+                  },
+                ),
               ),
               onChanged: (value) => _controller.searchLog(value),
             ),
@@ -386,29 +401,60 @@ class _LogViewState extends State<LogView> {
                 // 2. Tampilan jika loading sudah selesai tapi data di Atlas kosong
                 if (filteredLogs.isEmpty) {
                   return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.cloud_off,
-                          size: 64,
-                          color: Colors.grey,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Lottie.asset(
+                              'assets/images/notfound.json',
+                              width: 220,
+                              height: 220,
+                              fit: BoxFit.contain,
+                              repeat: true,
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              "Belum ada aktivitas hari ini?",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A237E),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Mulai catat progress Anda sekarang juga atau pastikan kata kunci pencarian sudah benar.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.blueGrey[400],
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                            if (_searchController.text.isEmpty)
+                              FilledButton.icon(
+                                onPressed: () => _goToEditor(),
+                                icon: const Icon(Icons.add_rounded),
+                                label: const Text("Buat Catatan Pertama"),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1565C0),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          "Belum ada catatan di Cloud.",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF455A64),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          onPressed: () => _goToEditor(),
-                          child: const Text("Buat Catatan Pertama"),
-                        ),
-                      ],
+                      ),
                     ),
                   );
                 }
