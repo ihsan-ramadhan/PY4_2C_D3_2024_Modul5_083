@@ -7,6 +7,7 @@ import 'log_editor_page.dart';
 import 'models/log_model.dart';
 import '../onboarding/onboarding_view.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shimmer/shimmer.dart';
 
 class LogView extends StatefulWidget {
   final String username;
@@ -312,15 +313,173 @@ class _LogViewState extends State<LogView> {
               builder: (context, filteredLogs, child) {
                 final currentLogs = _controller.logsNotifier.value;
                 if (_isLoading) {
-                  return const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text("Menghubungkan ke MongoDB Atlas..."),
-                      ],
-                    ),
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(top: 6, bottom: 80),
+                    itemCount: 6,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        child: Card(
+                          elevation: 0,
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            side: BorderSide(
+                              color: Colors.grey.shade200,
+                              width: 1,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              left: 14,
+                              top: 12,
+                              bottom: 12,
+                              right: 14,
+                            ),
+                            child: Shimmer.fromColors(
+                              baseColor: Colors.grey.shade200,
+                              highlightColor: Colors.white,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Expanded(
+                                              child: Container(
+                                                height: 16,
+                                                margin: const EdgeInsets.only(
+                                                  top: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 3,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              width: 65,
+                                              height: 18,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+
+                                        Container(
+                                          width: double.infinity,
+                                          height: 14,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          width:
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.width *
+                                              0.5,
+                                          height: 14,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 11,
+                                              height: 11,
+                                              decoration: const BoxDecoration(
+                                                color: Colors.white,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Container(
+                                              width: 80,
+                                              height: 11,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              width: 14,
+                                              height: 14,
+                                              decoration: const BoxDecoration(
+                                                color: Colors.white,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 24,
+                                        height: 24,
+                                        margin: const EdgeInsets.only(
+                                          bottom: 8,
+                                        ),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 }
 
