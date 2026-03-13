@@ -566,59 +566,64 @@ class _LogViewState extends State<LogView> {
 
                 // 2. Tampilan jika loading sudah selesai tapi data di Atlas kosong
                 if (filteredLogs.isEmpty) {
-                  return Center(
+                  return RefreshIndicator(
+                    color: const Color(0xFF1565C0),
+                    onRefresh: _initDatabase,
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Lottie.asset(
-                              'assets/images/notfound.json',
-                              width: 220,
-                              height: 220,
-                              fit: BoxFit.contain,
-                              repeat: true,
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              "Belum ada aktivitas hari ini?",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1A237E),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.7,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Lottie.asset(
+                                'assets/images/notfound.json',
+                                width: 220,
+                                height: 220,
+                                fit: BoxFit.contain,
+                                repeat: true,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Mulai catat progress Anda sekarang juga atau pastikan kata kunci pencarian sudah benar.",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.blueGrey[400],
-                                height: 1.4,
-                              ),
-                            ),
-                            const SizedBox(height: 28),
-                            if (_searchController.text.isEmpty)
-                              FilledButton.icon(
-                                onPressed: () => _goToEditor(),
-                                icon: const Icon(Icons.add_rounded),
-                                label: const Text("Buat Catatan Pertama"),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1565C0),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                "Belum ada aktivitas hari ini?",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1A237E),
                                 ),
                               ),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                "Mulai catat progress Anda sekarang juga atau pastikan kata kunci pencarian sudah benar.",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.blueGrey[400],
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 28),
+                              if (_searchController.text.isEmpty)
+                                FilledButton.icon(
+                                  onPressed: () => _goToEditor(),
+                                  icon: const Icon(Icons.add_rounded),
+                                  label: const Text("Buat Catatan Pertama"),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1565C0),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

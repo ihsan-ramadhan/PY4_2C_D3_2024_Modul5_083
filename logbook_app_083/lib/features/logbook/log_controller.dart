@@ -42,7 +42,8 @@ class LogController {
     ) async {
       if (results.contains(ConnectivityResult.none)) return;
 
-      if (logsNotifier.value.isEmpty) return;
+      final pendingData = _myBox.values.where((e) => !e.isSynced).toList();
+      if (pendingData.isEmpty) return;
 
       await LogHelper.writeLog(
         "SYNC: Internet terhubung, memulai cek data pending...",
@@ -144,7 +145,7 @@ class LogController {
     );
 
     // ACTION 1: Simpan ke Hive (Instan)
-    await _myBox.add(newLog);
+    final hiveKey = await _myBox.add(newLog);
     logsNotifier.value = [...logsNotifier.value, newLog];
     searchLog('');
 
@@ -152,7 +153,7 @@ class LogController {
     try {
       await MongoService().insertLog(newLog);
       newLog.isSynced = true;
-      await _myBox.putAt(_myBox.length - 1, newLog);
+      await _myBox.put(hiveKey, newLog); // Gunakan key asli
 
       logsNotifier.value = List.from(logsNotifier.value);
       searchLog('');
@@ -164,7 +165,7 @@ class LogController {
       );
     } catch (e) {
       newLog.isSynced = false;
-      await _myBox.putAt(_myBox.length - 1, newLog);
+      await _myBox.put(hiveKey, newLog); // Gunakan key asli
 
       logsNotifier.value = List.from(logsNotifier.value);
       searchLog('');
@@ -211,8 +212,13 @@ class LogController {
       isPublic: isPublic,
     );
 
+    final hiveKey = _myBox.keys.firstWhere(
+      (key) => _myBox.get(key)?.id == oldLog.id,
+      orElse: () => null,
+    );
+
     // ACTION 1: Update ke Hive (Instan)
-    await _myBox.putAt(index, updatedLog);
+    if (hiveKey != null) await _myBox.put(hiveKey, updatedLog);
     currentLogs[index] = updatedLog;
     logsNotifier.value = currentLogs;
     searchLog('');
@@ -221,7 +227,7 @@ class LogController {
     try {
       await MongoService().updateLog(updatedLog);
       updatedLog.isSynced = true;
-      await _myBox.putAt(index, updatedLog);
+      if (hiveKey != null) await _myBox.put(hiveKey, updatedLog);
 
       logsNotifier.value = List.from(logsNotifier.value);
       searchLog('');
@@ -233,7 +239,7 @@ class LogController {
       );
     } catch (e) {
       updatedLog.isSynced = false;
-      await _myBox.putAt(index, updatedLog);
+      if (hiveKey != null) await _myBox.put(hiveKey, updatedLog);
 
       logsNotifier.value = List.from(logsNotifier.value);
       searchLog('');
@@ -263,8 +269,15 @@ class LogController {
       return;
     }
 
+    final hiveKey = _myBox.keys.firstWhere(
+      (key) => _myBox.get(key)?.id == targetLog.id,
+      orElse: () => null,
+    );
+
     // ACTION 1: Hapus dari Hive (Instan)
-    await _myBox.deleteAt(index);
+    if (hiveKey != null) {
+      await _myBox.delete(hiveKey);
+    }
     currentLogs.removeAt(index);
     logsNotifier.value = currentLogs;
     searchLog('');
@@ -301,21 +314,29 @@ class LogController {
       // 2. Fetch data team ini dari cloud
       final cloudData = await MongoService().getLogs(teamId);
 
-      // SINKRONISASI: Replace Hive content with fresher Cloud content
-      await _myBox.clear();
-      await _myBox.addAll(cloudData);
+      if (cloudData.isNotEmpty) {
+        await _myBox.clear();
+        await _myBox.addAll(cloudData);
+        logsNotifier.value = cloudData;
+        searchLog('');
 
-      logsNotifier.value = cloudData;
-      searchLog('');
-
-      await LogHelper.writeLog(
-        "SYNC: Data berhasil diperbarui dari Atlas untuk team $teamId",
-        source: "log_controller.dart",
-        level: 2,
-      );
+        await LogHelper.writeLog(
+          "SYNC: Data berhasil diperbarui dari Atlas untuk team $teamId",
+          source: "log_controller.dart",
+          level: 2,
+        );
+      } else {
+        logsNotifier.value = localData;
+        searchLog('');
+        await LogHelper.writeLog(
+          "INFO: Cloud tidak punya data, mempertahankan cache lokal (${localData.length} item)",
+          source: "log_controller.dart",
+          level: 2,
+        );
+      }
     } catch (e) {
       await LogHelper.writeLog(
-        "OFFLINE: Gagal menjangkau Cloud, menggunakan data cache lokal.",
+        "OFFLINE: Gagal menjangkau Cloud, menggunakan data cache lokal (${localData.length} item).",
         source: "log_controller.dart",
         level: 2,
       );
